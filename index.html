@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b3261e">
+<title>Andrea's Tamales</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --red:#b3261e; --red-dark:#8c1d17; --green:#2e7d32; --green-bg:#e8f5e9;
+    --bg:#fcf8f2; --card:#fff; --ink:#2b2b2b; --muted:#6b6b6b; --line:#e7e0d6;
+    --rojo:#c62828; --verde:#2e7d32; --rajas:#b7860b; --dulce:#ad1457;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;font-size:18px;
+    -webkit-tap-highlight-color:transparent}
+  button,input,textarea,select{font:inherit;color:inherit}
+  button{cursor:pointer}
+
+  /* ---------- top bar + tabs ---------- */
+  header{position:sticky;top:0;z-index:10;background:var(--red);color:#fff;
+    box-shadow:0 2px 6px rgba(0,0,0,.15)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 4px;max-width:900px;margin:0 auto}
+  .topbar h1{margin:0;font-size:22px;letter-spacing:.3px}
+  .lang{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:999px;padding:6px 14px;font-size:15px;font-weight:600}
+  nav{display:flex;max-width:900px;margin:0 auto}
+  nav button{flex:1;background:none;border:0;color:#ffd9d4;padding:12px 4px 14px;font-size:17px;font-weight:600;
+    border-bottom:4px solid transparent}
+  nav button.on{color:#fff;border-bottom-color:#fff}
+  nav .ico{display:block;font-size:22px;line-height:1.1}
+
+  main{max-width:900px;margin:0 auto;padding:16px 16px 120px}
+  section.view{display:none}
+  section.view.on{display:block}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,.08);padding:18px;margin-bottom:16px}
+  h2{margin:0 0 12px;font-size:21px}
+  .muted{color:var(--muted)}
+  label.f{display:block;font-weight:700;margin:0 0 6px;font-size:16px}
+  .field{margin-bottom:16px}
+  input[type=text],input[type=tel],input[type=date],input[type=time],input[type=number],input[type=search],textarea{
+    width:100%;padding:14px;border:2px solid var(--line);border-radius:12px;background:#fff;font-size:20px;min-height:56px}
+  input:focus,textarea:focus{outline:none;border-color:var(--red)}
+  textarea{min-height:70px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px}
+  @media (max-width:620px){.row3{grid-template-columns:1fr 1fr}.row3 .full{grid-column:1/-1}}
+
+  /* ---------- quantity rows ---------- */
+  .qrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .qrow:last-child{border-bottom:0}
+  .qrow .tag{flex:0 0 58px;height:44px;border-radius:10px;color:#fff;font-weight:800;font-size:16px;
+    display:flex;align-items:center;justify-content:center}
+  .qrow .nm{flex:1;min-width:0}
+  .qrow .nm b{display:block;font-size:20px}
+  .qrow .nm small{color:var(--muted);font-size:14px}
+  .stepper{display:flex;align-items:center;gap:6px}
+  .stepper button{width:64px;height:60px;border-radius:14px;border:0;font-size:32px;font-weight:700;line-height:1}
+  .stepper .minus{background:#efe7dc;color:#5a4a3a}
+  .stepper .plus{background:var(--red);color:#fff}
+  .stepper .plus1{background:#f3d6d3;color:var(--red-dark);font-size:18px;width:58px}
+  .stepper .val{min-width:66px;text-align:center;font-size:28px;font-weight:800}
+  .stepper .val.zero{color:#c8bfb3}
+  @media (max-width:560px){.stepper .plus1{display:none}.stepper button{width:56px}.qrow .tag{flex-basis:48px}}
+
+  .t-rp,.t-rc{background:var(--rojo)} .t-vp,.t-vc{background:var(--verde)}
+  .t-rq{background:var(--rajas)} .t-d{background:var(--dulce)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:16px}
+  .chip.on{background:var(--red);border-color:var(--red);color:#fff}
+
+  .totalbar{position:fixed;left:0;right:0;bottom:0;z-index:9;background:#fff;border-top:2px solid var(--line);
+    box-shadow:0 -2px 8px rgba(0,0,0,.08);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .totalbar .in{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:14px}
+  .totalbar .sum{flex:1}
+  .totalbar .sum b{font-size:26px;color:var(--green)}
+  .totalbar .sum div{font-size:15px;color:var(--muted)}
+  .btn{border:0;border-radius:14px;padding:16px 22px;font-size:19px;font-weight:700;min-height:58px}
+  .btn.primary{background:var(--green);color:#fff;min-width:170px}
+  .btn.red{background:var(--red);color:#fff}
+  .btn.ghost{background:#efe7dc;color:#4a3d30}
+  .btn.block{width:100%}
+  .btn:disabled{opacity:.45}
+  .check{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;user-select:none}
+  .check input{width:28px;height:28px;accent-color:var(--green)}
+  .editing[hidden]{display:none}
+  .row2>*,.row3>*{min-width:0}
+  .editing{background:#fff4d6;border:2px solid #f0c24b;border-radius:12px;padding:10px 14px;margin-bottom:14px;
+    display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600}
+
+  /* ---------- day picker ---------- */
+  .daybar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .daybar button{width:56px;height:56px;border-radius:12px;border:0;background:#efe7dc;font-size:24px;font-weight:700;flex:0 0 auto}
+  .daybar .dlabel{flex:1;text-align:center}
+  .daybar .dlabel b{display:block;font-size:21px;text-transform:capitalize}
+  .daybar input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+  .daychips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+  .daychips .chip{white-space:nowrap}
+
+  /* ---------- order list ---------- */
+  .search{margin-bottom:12px}
+  .ord{background:#fff;border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,.08);padding:14px 16px;margin-bottom:12px;
+    border-left:8px solid #d9cfc2}
+  .ord.done{opacity:.6}
+  .ord.paid{border-left-color:var(--green)}
+  .ord .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .ord .who{font-size:22px;font-weight:800}
+  .ord .when{font-size:16px;color:var(--muted);margin-top:2px}
+  .ord .money{text-align:right;font-weight:800;font-size:20px}
+  .ord .money small{display:block;font-weight:600;color:var(--muted);font-size:14px}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .pill{color:#fff;border-radius:8px;padding:5px 10px;font-weight:700;font-size:17px}
+  .ord .notes{background:#fff8e6;border-radius:8px;padding:8px 10px;margin:6px 0 10px;font-size:16px}
+  .ord .acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .tog{border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;font-weight:700;font-size:16px;min-height:50px}
+  .tog.on{background:var(--green);border-color:var(--green);color:#fff}
+  .ord .acts .sp{flex:1}
+  .iconbtn{border:0;background:#efe7dc;border-radius:12px;min-width:50px;min-height:50px;font-size:16px;font-weight:700;padding:0 14px}
+  .iconbtn.del{background:#fde3e1;color:var(--red-dark)}
+  .empty{text-align:center;color:var(--muted);padding:40px 10px}
+
+  /* ---------- prep ---------- */
+  .prepgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:620px){.prepgrid{grid-template-columns:repeat(2,1fr)}}
+  .ptile{border-radius:14px;color:#fff;padding:14px;min-height:118px;display:flex;flex-direction:column;justify-content:space-between}
+  .ptile .pn{font-weight:700;font-size:17px}
+  .ptile .pv{font-size:40px;font-weight:800;line-height:1.05}
+  .ptile .pv small{font-size:17px;font-weight:600}
+  .ptile .pc{font-size:15px;opacity:.92}
+  .ptile.zero{opacity:.35}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  @media (max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--bg);border-radius:12px;padding:10px 12px}
+  .stat b{display:block;font-size:24px}
+  .stat span{font-size:14px;color:var(--muted)}
+  table.sheet{width:100%;border-collapse:collapse;font-size:17px}
+  table.sheet th,table.sheet td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:center}
+  table.sheet th:first-child,table.sheet td:first-child{text-align:left}
+  table.sheet td.nt{text-align:left;font-size:14px;color:var(--muted)}
+  table.sheet tfoot td{font-weight:800;border-top:2px solid var(--ink)}
+  .tablewrap{overflow-x:auto}
+
+  /* ---------- modal + toast ---------- */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal.on{display:flex}
+  .modal .box{background:#fff;border-radius:18px;padding:22px;max-width:440px;width:100%}
+  .modal .box p{font-size:19px;margin:0 0 18px}
+  .modal .btns{display:flex;gap:10px;justify-content:flex-end}
+  .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--green);color:#fff;
+    padding:14px 24px;border-radius:999px;font-weight:700;font-size:19px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+  .toast.err{background:var(--red)}
+
+  @media print{
+    header,.totalbar,.daybar,.daychips,.noprint,nav,#view-new,#view-list,#view-more{display:none!important}
+    body,html{background:#fff;font-size:13px}
+    main{padding:0}
+    .card{box-shadow:none;padding:0}
+    #view-prep{display:block!important}
+    .ptile{color:#000;border:1px solid #999;background:none!important;min-height:0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="topbar">
+    <h1>🫔 Andrea's Tamales</h1>
+    <button class="lang" id="langBtn">English</button>
+  </div>
+  <nav>
+    <button data-view="new" class="on"><span class="ico">➕</span><span data-t="tabNew"></span></button>
+    <button data-view="list"><span class="ico">📋</span><span data-t="tabList"></span></button>
+    <button data-view="prep"><span class="ico">🔥</span><span data-t="tabPrep"></span></button>
+    <button data-view="more"><span class="ico">⚙️</span><span data-t="tabMore"></span></button>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= NEW / EDIT ORDER ================= -->
+  <section class="view on" id="view-new">
+    <div class="editing" id="editBanner" hidden>
+      <span id="editText"></span>
+      <button class="btn ghost" id="cancelEdit" style="min-height:46px;padding:8px 16px" data-t="cancel"></button>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label class="f" for="fName" data-t="name"></label>
+        <input type="text" id="fName" autocomplete="off" autocapitalize="words" enterkeyhint="done">
+      </div>
+      <div class="row3">
+        <div class="field">
+          <label class="f" for="fDate" data-t="date"></label>
+          <input type="date" id="fDate">
+        </div>
+        <div class="field">
+          <label class="f" for="fTime" data-t="time"></label>
+          <input type="time" id="fTime" step="900">
+        </div>
+        <div class="field full">
+          <label class="f" for="fPhone" data-t="phone"></label>
+          <input type="tel" id="fPhone" autocomplete="off" inputmode="tel">
+        </div>
+      </div>
+      <div class="chips" id="timeChips" style="margin-top:-6px;margin-bottom:4px"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-t="dozens"></h2>
+      <div id="qtyRows"></div>
+    </div>
+
+    <div class="card">
+      <label class="f" for="fNotes" data-t="notes"></label>
+      <textarea id="fNotes" rows="2"></textarea>
+      <div class="chips" id="noteChips"></div>
+      <div style="margin-top:16px">
+        <label class="check"><input type="checkbox" id="fPaid"><span data-t="paidAlready"></span></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ORDERS LIST ================= -->
+  <section class="view" id="view-list">
+    <div class="daybarHost"></div>
+    <input type="search" class="search" id="search" data-tp="searchPh">
+    <div id="orderList"></div>
+  </section>
+
+  <!-- ================= PREP ================= -->
+  <section class="view" id="view-prep">
+    <div class="daybarHost"></div>
+    <div class="card">
+      <h2 id="prepTitle"></h2>
+      <div class="prepgrid" id="prepGrid"></div>
+      <div class="stats" id="prepStats"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+        <h2 style="margin:0" data-t="sheet"></h2>
+        <button class="btn ghost noprint" id="printBtn" style="min-height:48px;padding:8px 16px" data-t="print"></button>
+      </div>
+      <div class="tablewrap"><table class="sheet" id="sheet"></table></div>
+    </div>
+  </section>
+
+  <!-- ================= MORE ================= -->
+  <section class="view" id="view-more">
+    <div class="card">
+      <h2 data-t="excelTitle"></h2>
+      <p class="muted" data-t="excelHelp"></p>
+      <button class="btn red block" id="exportBtn" data-t="excelBtn"></button>
+    </div>
+    <div class="card">
+      <h2 data-t="backupTitle"></h2>
+      <p class="muted" data-t="backupHelp"></p>
+      <p id="lastBackup" style="font-weight:600"></p>
+      <div class="row2">
+        <button class="btn ghost" id="backupBtn" data-t="backupBtn"></button>
+        <button class="btn ghost" id="restoreBtn" data-t="restoreBtn"></button>
+      </div>
+      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+    </div>
+    <div class="card">
+      <h2 data-t="priceTitle"></h2>
+      <div class="field" style="max-width:240px">
+        <label class="f" for="price" data-t="priceLabel"></label>
+        <input type="number" id="price" min="0" step="0.5" inputmode="decimal">
+      </div>
+      <p class="muted" data-t="priceHelp"></p>
+    </div>
+    <div class="card">
+      <h2 data-t="aboutTitle"></h2>
+      <p class="muted" id="aboutText"></p>
+    </div>
+  </section>
+</main>
+
+<div class="totalbar" id="totalbar">
+  <div class="in">
+    <div class="sum"><b id="tMoney">$0.00</b><div id="tDoz"></div></div>
+    <button class="btn primary" id="saveBtn" data-t="save"></button>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="box">
+  <p id="modalText"></p>
+  <div class="btns">
+    <button class="btn ghost" id="modalNo" data-t="cancel"></button>
+    <button class="btn red" id="modalYes"></button>
+  </div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="xlsx.mini.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ================= CONFIG ================= */
+const TYPES = [
+  {k:'rp', code:'RP',  es:'Rojo (Puerco)',    en:'Red (Pork)',        cls:'t-rp'},
+  {k:'rc', code:'RC',  es:'Rojo (Pollo)',     en:'Red (Chicken)',     cls:'t-rc'},
+  {k:'vp', code:'VP',  es:'Verde (Puerco)',   en:'Green (Pork)',      cls:'t-vp'},
+  {k:'vc', code:'VC',  es:'Verde (Pollo)',    en:'Green (Chicken)',   cls:'t-vc'},
+  {k:'rq', code:'R/Q', es:'Rajas con Queso',  en:'Rajas & Cheese',    cls:'t-rq'},
+  {k:'d',  code:'D',   es:'Dulce',            en:'Sweet',             cls:'t-d'},
+];
+const TILE_COLORS = {rp:'#c62828',rc:'#e0533f',vp:'#2e7d32',vc:'#5a9e3a',rq:'#b7860b',d:'#ad1457'};
+const KEY_ORDERS='tamales.orders.v1', KEY_SET='tamales.settings.v1';
+
+const T = {
+  es:{tabNew:'Nuevo',tabList:'Pedidos',tabPrep:'Preparar',tabMore:'Más',
+    name:'Nombre',date:'Fecha',time:'Hora de recoger',phone:'Teléfono (opcional)',
+    dozens:'Docenas',notes:'Notas',paidAlready:'Ya pagó',save:'Guardar',saveEdit:'Guardar cambios',
+    cancel:'Cancelar',noTime:'Sin hora',dz:'doc.',tamales:'tamales',
+    editing:'Editando el pedido de',needName:'Escribe el nombre',needQty:'Agrega al menos ½ docena',
+    saved:'¡Guardado!',updated:'¡Cambios guardados!',deleted:'Pedido borrado',
+    searchPh:'Buscar nombre…',noOrders:'No hay pedidos para este día.',noMatch:'Nadie con ese nombre.',
+    paid:'Pagado',notPaid:'Sin pagar',picked:'Recogido',notPicked:'No recogido',edit:'Editar',del:'Borrar',
+    delQ:'¿Borrar el pedido de {n}?',delYes:'Sí, borrar',
+    prepFor:'Preparar para',totalDoz:'Docenas en total',ordersN:'Pedidos',totalMoney:'Total a cobrar',
+    stillOwed:'Falta cobrar',sheet:'Hoja del día',print:'Imprimir',total:'Total',
+    excelTitle:'Excel',excelHelp:'Baja un archivo de Excel con todos los pedidos, un resumen por día y una hoja por cada día.',
+    excelBtn:'📥 Bajar Excel',
+    backupTitle:'Respaldo',backupHelp:'Los pedidos se guardan solo en esta tableta. Guarda un respaldo de vez en cuando (y envíalo por correo o WhatsApp) por si se borra la tableta.',
+    backupBtn:'💾 Guardar respaldo',restoreBtn:'📂 Restaurar',lastBackup:'Último respaldo: {d}',neverBackup:'Todavía no has guardado un respaldo.',
+    restoreQ:'¿Restaurar {n} pedidos de este archivo? Los pedidos que ya están no se borran.',restoreYes:'Restaurar',
+    restored:'Restaurados: {n}',badFile:'Ese archivo no es un respaldo válido',
+    priceTitle:'Precio',priceLabel:'Precio por docena ($)',priceHelp:'Los pedidos ya guardados conservan su precio.',
+    aboutTitle:'Información',about:'{n} pedidos guardados en esta tableta. Funciona sin internet.',
+    today:'Hoy',tomorrow:'Mañana',noteChips:['No picosos','Mix','Arroz','Frijoles','Champurrado'],
+    exportErr:'No se pudo crear el Excel'},
+  en:{tabNew:'New',tabList:'Orders',tabPrep:'Prep',tabMore:'More',
+    name:'Name',date:'Date',time:'Pickup time',phone:'Phone (optional)',
+    dozens:'Dozens',notes:'Notes',paidAlready:'Already paid',save:'Save',saveEdit:'Save changes',
+    cancel:'Cancel',noTime:'No time',dz:'dz',tamales:'tamales',
+    editing:'Editing order for',needName:'Type a name',needQty:'Add at least ½ dozen',
+    saved:'Saved!',updated:'Changes saved!',deleted:'Order deleted',
+    searchPh:'Search name…',noOrders:'No orders for this day.',noMatch:'No one by that name.',
+    paid:'Paid',notPaid:'Not paid',picked:'Picked up',notPicked:'Not picked up',edit:'Edit',del:'Delete',
+    delQ:'Delete the order for {n}?',delYes:'Yes, delete',
+    prepFor:'Prep for',totalDoz:'Total dozens',ordersN:'Orders',totalMoney:'Total to collect',
+    stillOwed:'Still owed',sheet:'Day sheet',print:'Print',total:'Total',
+    excelTitle:'Excel',excelHelp:'Download an Excel file with every order, a daily summary, and one sheet per day.',
+    excelBtn:'📥 Download Excel',
+    backupTitle:'Backup',backupHelp:'Orders are saved only on this tablet. Save a backup now and then (and email or WhatsApp it to yourself) in case the tablet gets reset.',
+    backupBtn:'💾 Save backup',restoreBtn:'📂 Restore',lastBackup:'Last backup: {d}',neverBackup:'No backup saved yet.',
+    restoreQ:'Restore {n} orders from this file? Existing orders are kept.',restoreYes:'Restore',
+    restored:'Restored: {n}',badFile:'That file is not a valid backup',
+    priceTitle:'Price',priceLabel:'Price per dozen ($)',priceHelp:'Orders already saved keep their price.',
+    aboutTitle:'About',about:'{n} orders saved on this tablet. Works without internet.',
+    today:'Today',tomorrow:'Tomorrow',noteChips:['Not spicy','Mix','Rice','Beans','Champurrado'],
+    exportErr:'Could not create the Excel file'}
+};
+
+/* ================= STATE ================= */
+let orders = load(KEY_ORDERS, []);
+let settings = Object.assign({lang:'es', price:28, lastDate:'', lastBackup:''}, load(KEY_SET, {}));
+let form = blankForm();
+let editingId = null;
+let day = todayISO();
+let view = 'new';
+
+function load(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v==null?d:v; }catch(e){ return d; } }
+function saveOrders(){ localStorage.setItem(KEY_ORDERS, JSON.stringify(orders)); }
+function saveSettings(){ localStorage.setItem(KEY_SET, JSON.stringify(settings)); }
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const t = (k, vars) => { let s = (T[settings.lang]||T.es)[k]; if (s==null) s = T.es[k]; if (vars) for (const v in vars) s = s.replace('{'+v+'}', vars[v]); return s; };
+const tn = ty => ty[settings.lang] || ty.es;
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function todayISO(off){ const d = new Date(); d.setDate(d.getDate()+(off||0)); return isoOf(d); }
+function isoOf(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseISO(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function locale(){ return settings.lang==='en' ? 'en-US' : 'es-MX'; }
+function dayLong(s){ return parseISO(s).toLocaleDateString(locale(), {weekday:'long', day:'numeric', month:'long'}); }
+function dayShort(s){
+  if (s===todayISO()) return t('today'); if (s===todayISO(1)) return t('tomorrow');
+  return parseISO(s).toLocaleDateString(locale(), {weekday:'short', day:'numeric', month:'short'});
+}
+function fmtTime(hm){
+  if (!hm) return '';
+  const [h,m] = hm.split(':').map(Number); const ap = h<12?'am':'pm'; const h12 = ((h+11)%12)+1;
+  return h12 + (m ? ':'+String(m).padStart(2,'0') : '') + ' ' + ap;
+}
+function fmtQ(q){
+  if (!q) return '0'; const w = Math.floor(q), h = q - w >= 0.5;
+  return (w ? String(w) : '') + (h ? '½' : '') || '0';
+}
+const money = n => '$' + (Math.round(n*100)/100).toFixed(2);
+const dozOf = o => TYPES.reduce((s,ty) => s + (o.q[ty.k]||0), 0);
+const priceOf = o => dozOf(o) * (o.price!=null ? o.price : settings.price);
+function blankQ(){ const q = {}; TYPES.forEach(ty => q[ty.k] = 0); return q; }
+function blankForm(){ return {name:'', phone:'', date: (settings && settings.lastDate && settings.lastDate >= todayISO()) ? settings.lastDate : todayISO(), time:'', q:blankQ(), notes:'', paid:false}; }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function sortOrders(list){
+  return list.slice().sort((a,b) => (a.date.localeCompare(b.date)) || ((a.time||'99').localeCompare(b.time||'99')) || a.name.localeCompare(b.name));
+}
+
+/* ================= i18n paint ================= */
+function paintText(){
+  document.documentElement.lang = settings.lang;
+  $$('[data-t]').forEach(el => el.textContent = t(el.dataset.t));
+  $$('[data-tp]').forEach(el => el.placeholder = t(el.dataset.tp));
+  $('#langBtn').textContent = settings.lang==='es' ? 'English' : 'Español';
+  buildQtyRows(); buildChips(); paintForm(); renderAll();
+}
+
+/* ================= NEW ORDER FORM ================= */
+function buildQtyRows(){
+  $('#qtyRows').innerHTML = TYPES.map(ty => `
+    <div class="qrow">
+      <div class="tag ${ty.cls}">${ty.code}</div>
+      <div class="nm"><b>${tn(ty)}</b><small id="cnt-${ty.k}"></small></div>
+      <div class="stepper">
+        <button class="minus" data-k="${ty.k}" data-d="-0.5" aria-label="menos">−</button>
+        <div class="val" id="val-${ty.k}">0</div>
+        <button class="plus" data-k="${ty.k}" data-d="0.5" aria-label="más ½">+</button>
+        <button class="plus1" data-k="${ty.k}" data-d="1">+1</button>
+      </div>
+    </div>`).join('');
+}
+$('#qtyRows').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if (!b) return;
+  const k = b.dataset.k; form.q[k] = Math.max(0, Math.round((form.q[k] + Number(b.dataset.d))*2)/2);
+  paintQty();
+});
+function buildChips(){
+  const times = ['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+  $('#timeChips').innerHTML = times.map(h => `<button class="chip" data-time="${h}">${fmtTime(h)}</button>`).join('')
+    + `<button class="chip" data-time="">${t('noTime')}</button>`;
+  $('#noteChips').innerHTML = t('noteChips').map(n => `<button class="chip" data-note="${esc(n)}">+ ${esc(n)}</button>`).join('');
+}
+$('#timeChips').addEventListener('click', e => { const b = e.target.closest('[data-time]'); if (!b) return; form.time = b.dataset.time; paintForm(); });
+$('#noteChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-note]'); if (!b) return;
+  const cur = form.notes.trim(); form.notes = cur ? cur + ', ' + b.dataset.note : b.dataset.note; paintForm();
+});
+$('#fName').addEventListener('input', e => form.name = e.target.value);
+$('#fPhone').addEventListener('input', e => form.phone = e.target.value);
+$('#fDate').addEventListener('change', e => { form.date = e.target.value || todayISO(); });
+$('#fTime').addEventListener('change', e => { form.time = e.target.value; paintForm(); });
+$('#fNotes').addEventListener('input', e => form.notes = e.target.value);
+$('#fPaid').addEventListener('change', e => form.paid = e.target.checked);
+
+function paintForm(){
+  $('#fName').value = form.name; $('#fPhone').value = form.phone; $('#fDate').value = form.date;
+  $('#fTime').value = form.time; $('#fNotes').value = form.notes; $('#fPaid').checked = form.paid;
+  $$('#timeChips .chip').forEach(c => c.classList.toggle('on', c.dataset.time === form.time));
+  $('#editBanner').hidden = !editingId;
+  if (editingId) $('#editText').textContent = t('editing') + ' ' + form.name;
+  paintQty();
+}
+function paintQty(){
+  TYPES.forEach(ty => {
+    const v = form.q[ty.k]; const el = $('#val-'+ty.k); if (!el) return;
+    el.textContent = fmtQ(v); el.classList.toggle('zero', !v);
+    $('#cnt-'+ty.k).textContent = v ? (v*12) + ' ' + t('tamales') : '';
+  });
+  const dz = dozOf(form); const pr = editingId ? (orders.find(o=>o.id===editingId)||{}).price : settings.price;
+  $('#tMoney').textContent = money(dz * (pr!=null?pr:settings.price));
+  $('#tDoz').textContent = fmtQ(dz) + ' ' + t('dz') + ' · ' + (dz*12) + ' ' + t('tamales');
+  $('#saveBtn').textContent = editingId ? t('saveEdit') : t('save');
+}
+
+$('#saveBtn').addEventListener('click', () => {
+  form.name = $('#fName').value.trim();
+  if (!form.name){ toast(t('needName'), true); $('#fName').focus(); return; }
+  if (!dozOf(form)){ toast(t('needQty'), true); return; }
+  const now = new Date().toISOString();
+  if (editingId){
+    const o = orders.find(x => x.id === editingId);
+    Object.assign(o, {name:form.name, phone:form.phone.trim(), date:form.date, time:form.time, q:Object.assign({},form.q), notes:form.notes.trim(), paid:form.paid, updated:now});
+    saveOrders(); toast(t('updated'));
+    day = o.date; editingId = null; form = blankForm(); paintForm(); go('list');
+  } else {
+    orders.push({id:uid(), name:form.name, phone:form.phone.trim(), date:form.date, time:form.time, q:Object.assign({},form.q),
+      notes:form.notes.trim(), price:settings.price, paid:form.paid, picked:false, created:now, updated:now});
+    saveOrders(); settings.lastDate = form.date; saveSettings(); toast(t('saved'));
+    const keepDate = form.date; form = blankForm(); form.date = keepDate; paintForm();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  renderAll();
+});
+$('#cancelEdit').addEventListener('click', () => { editingId = null; form = blankForm(); paintForm(); go('list'); });
+
+function startEdit(id){
+  const o = orders.find(x => x.id === id); if (!o) return;
+  editingId = id;
+  form = {name:o.name, phone:o.phone||'', date:o.date, time:o.time||'', q:Object.assign(blankQ(), o.q), notes:o.notes||'', paid:!!o.paid};
+  paintForm(); go('new'); window.scrollTo(0,0);
+}
+
+/* ================= DAY PICKER (shared) ================= */
+function daysWithOrders(){ return Array.from(new Set(orders.map(o => o.date))).sort(); }
+function renderDaybars(){
+  const days = daysWithOrders();
+  const upcoming = days.filter(d => d >= todayISO());
+  const chipDays = Array.from(new Set([todayISO()].concat(upcoming.slice(0,8)))).sort();
+  if (!chipDays.includes(day)) chipDays.push(day), chipDays.sort();
+  const count = d => orders.filter(o => o.date === d).length;
+  const html = `
+    <div class="daybar">
+      <button data-shift="-1" aria-label="día anterior">‹</button>
+      <label class="dlabel"><b>${esc(dayLong(day))}</b><span class="muted">📅 ${settings.lang==='es'?'cambiar fecha':'change date'}</span>
+        <input type="date" class="dayInput" value="${day}"></label>
+      <button data-shift="1" aria-label="día siguiente">›</button>
+    </div>
+    <div class="daychips">${chipDays.map(d => `<button class="chip ${d===day?'on':''}" data-day="${d}">${esc(dayShort(d))}${count(d)?' ('+count(d)+')':''}</button>`).join('')}</div>`;
+  $$('.daybarHost').forEach(h => h.innerHTML = html);
+}
+document.addEventListener('click', e => {
+  const s = e.target.closest('[data-shift]');
+  if (s){ const d = parseISO(day); d.setDate(d.getDate() + Number(s.dataset.shift)); day = isoOf(d); renderAll(); return; }
+  const c = e.target.closest('[data-day]'); if (c){ day = c.dataset.day; renderAll(); return; }
+  const lbl = e.target.closest('.dlabel');
+  if (lbl){ const inp = lbl.querySelector('input'); if (inp.showPicker) { e.preventDefault(); try{ inp.showPicker(); }catch(_){} } }
+});
+document.addEventListener('change', e => { if (e.target.classList.contains('dayInput') && e.target.value){ day = e.target.value; renderAll(); } });
+
+/* ================= ORDERS LIST ================= */
+function renderList(){
+  const q = $('#search').value.trim().toLowerCase();
+  let list = q ? orders.filter(o => o.name.toLowerCase().includes(q)) : orders.filter(o => o.date === day);
+  list = sortOrders(list);
+  if (!list.length){ $('#orderList').innerHTML = `<div class="empty">${q ? t('noMatch') : t('noOrders')}</div>`; return; }
+  $('#orderList').innerHTML = list.map(o => {
+    const pills = TYPES.filter(ty => o.q[ty.k]).map(ty => `<span class="pill" style="background:${TILE_COLORS[ty.k]}">${ty.code} ${fmtQ(o.q[ty.k])}</span>`).join('');
+    const when = [q ? dayShort(o.date) : '', o.time ? '🕑 ' + fmtTime(o.time) : '', o.phone ? '📞 ' + esc(o.phone) : ''].filter(Boolean).join(' · ');
+    return `<div class="ord ${o.paid?'paid':''} ${o.picked&&o.paid?'done':''}">
+      <div class="top">
+        <div><div class="who">${esc(o.name)}</div><div class="when">${when}</div></div>
+        <div class="money">${money(priceOf(o))}<small>${fmtQ(dozOf(o))} ${t('dz')}</small></div>
+      </div>
+      <div class="pills">${pills}</div>
+      ${o.notes ? `<div class="notes">📝 ${esc(o.notes)}</div>` : ''}
+      <div class="acts">
+        <button class="tog ${o.paid?'on':''}" data-act="paid" data-id="${o.id}">${o.paid ? '✓ ' + t('paid') : '$ ' + t('notPaid')}</button>
+        <button class="tog ${o.picked?'on':''}" data-act="picked" data-id="${o.id}">${o.picked ? '✓ ' + t('picked') : '🛍 ' + t('notPicked')}</button>
+        <span class="sp"></span>
+        <button class="iconbtn" data-act="edit" data-id="${o.id}">✏️ ${t('edit')}</button>
+        <button class="iconbtn del" data-act="del" data-id="${o.id}">🗑</button>
+      </div></div>`;
+  }).join('');
+}
+$('#orderList').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const o = orders.find(x => x.id === b.dataset.id); if (!o) return;
+  const act = b.dataset.act;
+  if (act === 'paid' || act === 'picked'){ o[act] = !o[act]; o.updated = new Date().toISOString(); saveOrders(); renderAll(); }
+  else if (act === 'edit') startEdit(o.id);
+  else if (act === 'del') ask(t('delQ', {n:o.name}), t('delYes'), () => {
+    orders = orders.filter(x => x.id !== o.id); saveOrders(); toast(t('deleted')); renderAll();
+  });
+});
+$('#search').addEventListener('input', renderList);
+
+/* ================= PREP ================= */
+function dayTotals(d){
+  const list = orders.filter(o => o.date === d); const tot = blankQ();
+  list.forEach(o => TYPES.forEach(ty => tot[ty.k] += (o.q[ty.k]||0)));
+  const doz = TYPES.reduce((s,ty) => s + tot[ty.k], 0);
+  const m = list.reduce((s,o) => s + priceOf(o), 0);
+  const owed = list.filter(o => !o.paid).reduce((s,o) => s + priceOf(o), 0);
+  return {list, tot, doz, money:m, owed};
+}
+function renderPrep(){
+  const r = dayTotals(day);
+  $('#prepTitle').textContent = t('prepFor') + ' ' + dayLong(day);
+  $('#prepGrid').innerHTML = TYPES.map(ty => {
+    const v = r.tot[ty.k];
+    return `<div class="ptile ${v?'':'zero'}" style="background:${TILE_COLORS[ty.k]}">
+      <div class="pn">${ty.code} · ${tn(ty)}</div>
+      <div class="pv">${fmtQ(v)} <small>${t('dz')}</small></div>
+      <div class="pc">${v*12} ${t('tamales')}</div></div>`;
+  }).join('');
+  $('#prepStats').innerHTML = [
+    [fmtQ(r.doz), t('totalDoz') + ' (' + r.doz*12 + ')'], [r.list.length, t('ordersN')],
+    [money(r.money), t('totalMoney')], [money(r.owed), t('stillOwed')]
+  ].map(([a,b]) => `<div class="stat"><b>${a}</b><span>${b}</span></div>`).join('');
+
+  const list = sortOrders(r.list);
+  const head = `<thead><tr><th>${t('name')}</th><th>${settings.lang==='es'?'Hora':'Time'}</th>${TYPES.map(ty => `<th>${ty.code}</th>`).join('')}<th>$</th><th>${t('notes')}</th></tr></thead>`;
+  const body = list.map(o => `<tr><td>${o.paid?'✓ ':''}${esc(o.name)}</td><td>${fmtTime(o.time)}</td>${TYPES.map(ty => `<td>${o.q[ty.k] ? fmtQ(o.q[ty.k]) : ''}</td>`).join('')}<td>${money(priceOf(o))}</td><td class="nt">${esc(o.notes||'')}</td></tr>`).join('');
+  const foot = `<tfoot><tr><td>${t('total')}</td><td></td>${TYPES.map(ty => `<td>${fmtQ(r.tot[ty.k])}</td>`).join('')}<td>${money(r.money)}</td><td></td></tr></tfoot>`;
+  $('#sheet').innerHTML = list.length ? head + '<tbody>' + body + '</tbody>' + foot : `<tr><td class="empty">${t('noOrders')}</td></tr>`;
+}
+$('#printBtn').addEventListener('click', () => window.print());
+
+/* ================= MORE: Excel, backup, price ================= */
+function exportExcel(){
+  try{
+    const es = settings.lang === 'es';
+    const H = es ? {date:'Fecha',time:'Hora',name:'Nombre',phone:'Teléfono',doz:'Docenas',tam:'Tamales',price:'Precio/doc',total:'Total $',paid:'Pagado',picked:'Recogido',notes:'Notas',orders:'Pedidos',owed:'Falta cobrar',yes:'Sí',no:'No'}
+                 : {date:'Date',time:'Time',name:'Name',phone:'Phone',doz:'Dozens',tam:'Tamales',price:'Price/dz',total:'Total $',paid:'Paid',picked:'Picked up',notes:'Notes',orders:'Orders',owed:'Still owed',yes:'Yes',no:'No'};
+    const tcol = TYPES.map(ty => ty.code + ' ' + tn(ty));
+    const wb = XLSX.utils.book_new();
+    const all = sortOrders(orders);
+    const days = daysWithOrders();
+
+    // 1) Daily summary
+    const sum = [[H.date].concat(tcol, [H.doz, H.tam, H.orders, H.total, H.owed])];
+    days.forEach(d => { const r = dayTotals(d);
+      sum.push([parseISO(d)].concat(TYPES.map(ty => r.tot[ty.k]), [r.doz, r.doz*12, r.list.length, r.money, r.owed])); });
+    const ws1 = XLSX.utils.aoa_to_sheet(sum, {cellDates:true, dateNF:'ddd mmm d yyyy'});
+    ws1['!cols'] = [{wch:18}].concat(TYPES.map(()=>({wch:16})), [{wch:10},{wch:10},{wch:9},{wch:11},{wch:12}]);
+    XLSX.utils.book_append_sheet(wb, ws1, es ? 'Resumen por día' : 'Daily summary');
+
+    // 2) All orders
+    const rows = [[H.date, H.time, H.name, H.phone].concat(TYPES.map(ty => ty.code), [H.doz, H.price, H.total, H.paid, H.picked, H.notes])];
+    all.forEach(o => rows.push([parseISO(o.date), fmtTime(o.time), o.name, o.phone||''].concat(TYPES.map(ty => o.q[ty.k] || ''),
+      [dozOf(o), o.price!=null?o.price:settings.price, priceOf(o), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
+    const ws2 = XLSX.utils.aoa_to_sheet(rows, {cellDates:true, dateNF:'yyyy-mm-dd'});
+    ws2['!cols'] = [{wch:12},{wch:9},{wch:22},{wch:14}].concat(TYPES.map(()=>({wch:6})), [{wch:9},{wch:10},{wch:9},{wch:8},{wch:10},{wch:34}]);
+    XLSX.utils.book_append_sheet(wb, ws2, es ? 'Todos los pedidos' : 'All orders');
+
+    // 3) One sheet per day (like the paper list)
+    const used = new Set();
+    days.forEach(d => {
+      const r = dayTotals(d); const list = sortOrders(r.list);
+      const aoa = [[dayLong(d)], [H.name, H.time].concat(TYPES.map(ty => ty.code), [H.total, H.paid, H.picked, H.notes])];
+      list.forEach(o => aoa.push([o.name, fmtTime(o.time)].concat(TYPES.map(ty => o.q[ty.k] || ''), [priceOf(o), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
+      aoa.push(['Total', ''].concat(TYPES.map(ty => r.tot[ty.k]), [r.money]));
+      aoa.push([H.tam, ''].concat(TYPES.map(ty => r.tot[ty.k]*12), ['']));
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{wch:22},{wch:9}].concat(TYPES.map(()=>({wch:6})), [{wch:9},{wch:8},{wch:10},{wch:34}]);
+      let nm = d; let i = 2; while (used.has(nm)) nm = d + ' (' + (i++) + ')'; used.add(nm);
+      XLSX.utils.book_append_sheet(wb, ws, nm);
+    });
+    XLSX.writeFile(wb, 'Tamales-' + todayISO() + '.xlsx');
+  } catch(err){ console.error(err); toast(t('exportErr'), true); }
+}
+$('#exportBtn').addEventListener('click', exportExcel);
+
+function download(name, text, type){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+$('#backupBtn').addEventListener('click', () => {
+  download('Tamales-respaldo-' + todayISO() + '.json', JSON.stringify({app:'tamales', version:1, saved:new Date().toISOString(), price:settings.price, orders}, null, 1), 'application/json');
+  settings.lastBackup = new Date().toISOString(); saveSettings(); renderMore();
+});
+$('#restoreBtn').addEventListener('click', () => $('#restoreFile').click());
+$('#restoreFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(txt => {
+    let data; try{ data = JSON.parse(txt); }catch(_){ data = null; }
+    const list = data && Array.isArray(data.orders) ? data.orders.filter(o => o && o.id && o.name && o.date && o.q) : null;
+    if (!list){ toast(t('badFile'), true); return; }
+    ask(t('restoreQ', {n:list.length}), t('restoreYes'), () => {
+      const byId = new Map(orders.map(o => [o.id, o]));
+      list.forEach(o => { const cur = byId.get(o.id); if (!cur || (o.updated||'') > (cur.updated||'')) byId.set(o.id, o); });
+      orders = Array.from(byId.values()); saveOrders(); toast(t('restored', {n:list.length})); renderAll();
+    });
+  }).finally(() => { e.target.value = ''; });
+});
+$('#price').addEventListener('change', e => { const v = Number(e.target.value); if (v >= 0){ settings.price = v; saveSettings(); paintQty(); } });
+function renderMore(){
+  $('#price').value = settings.price;
+  $('#lastBackup').textContent = settings.lastBackup ? t('lastBackup', {d: new Date(settings.lastBackup).toLocaleString(locale(), {dateStyle:'medium', timeStyle:'short'})}) : t('neverBackup');
+  $('#aboutText').textContent = t('about', {n: orders.length});
+}
+
+/* ================= NAV, MODAL, TOAST ================= */
+function go(v){
+  view = v;
+  $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.view === v));
+  $$('section.view').forEach(s => s.classList.toggle('on', s.id === 'view-' + v));
+  $('#totalbar').style.display = v === 'new' ? '' : 'none';
+  renderAll(); window.scrollTo(0,0);
+}
+$$('nav button').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+$('#langBtn').addEventListener('click', () => { settings.lang = settings.lang === 'es' ? 'en' : 'es'; saveSettings(); paintText(); });
+
+let modalCb = null;
+function ask(text, yes, cb){ $('#modalText').textContent = text; $('#modalYes').textContent = yes; modalCb = cb; $('#modal').classList.add('on'); }
+$('#modalNo').addEventListener('click', () => { $('#modal').classList.remove('on'); modalCb = null; });
+$('#modalYes').addEventListener('click', () => { $('#modal').classList.remove('on'); const cb = modalCb; modalCb = null; if (cb) cb(); });
+
+let toastTimer;
+function toast(msg, err){ const el = $('#toast'); el.textContent = msg; el.classList.toggle('err', !!err); el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 1800); }
+
+function renderAll(){ renderDaybars(); renderList(); renderPrep(); renderMore(); }
+
+/* ================= START ================= */
+paintText();
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Re-read if another tab changed data
+window.addEventListener('storage', e => { if (e.key === KEY_ORDERS){ orders = load(KEY_ORDERS, []); renderAll(); } });
+})();
+</script>
+</body>
+</html>
