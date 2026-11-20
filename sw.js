@@ -1,6 +1,6 @@
 // Offline support: keeps a copy of the app on the tablet.
 // Change VERSION whenever you upload new files so the tablet picks them up.
-const VERSION = 'tamales-v1';
+const VERSION = 'tamales-v2';
 const FILES = ['./', 'index.html', 'xlsx.mini.min.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
