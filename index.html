@@ -53,7 +53,7 @@
   /* ---------- quantity rows ---------- */
   .qrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
   .qrow:last-child{border-bottom:0}
-  .qrow .tag{flex:0 0 58px;height:44px;border-radius:10px;color:#fff;font-weight:800;font-size:16px;
+  .qrow .tag{flex:0 0 12px;height:48px;border-radius:10px;color:#fff;font-weight:800;font-size:16px;
     display:flex;align-items:center;justify-content:center}
   .qrow .nm{flex:1;min-width:0}
   .qrow .nm b{display:block;font-size:20px}
@@ -65,7 +65,7 @@
   .stepper .plus1{background:#f3d6d3;color:var(--red-dark);font-size:18px;width:58px}
   .stepper .val{min-width:66px;text-align:center;font-size:28px;font-weight:800}
   .stepper .val.zero{color:#c8bfb3}
-  @media (max-width:560px){.stepper .plus1{display:none}.stepper button{width:56px}.qrow .tag{flex-basis:48px}}
+  @media (max-width:560px){.stepper .plus1{display:none}.stepper button{width:56px}}
 
   .t-rp,.t-rc{background:var(--rojo)} .t-vp,.t-vc{background:var(--verde)}
   .t-rq{background:var(--rajas)} .t-d{background:var(--dulce)}
@@ -143,6 +143,7 @@
   table.sheet th:first-child,table.sheet td:first-child{text-align:left}
   table.sheet td.nt{text-align:left;font-size:14px;color:var(--muted)}
   table.sheet tfoot td{font-weight:800;border-top:2px solid var(--ink)}
+  table.sheet th.tn{font-size:14px;line-height:1.15;min-width:58px}
   .tablewrap{overflow-x:auto}
 
   /* ---------- modal + toast ---------- */
@@ -305,10 +306,10 @@
 
 /* ================= CONFIG ================= */
 const TYPES = [
-  {k:'rp', code:'RP',  es:'Rojo (Puerco)',    en:'Red (Pork)',        cls:'t-rp'},
-  {k:'rc', code:'RC',  es:'Rojo (Pollo)',     en:'Red (Chicken)',     cls:'t-rc'},
-  {k:'vp', code:'VP',  es:'Verde (Puerco)',   en:'Green (Pork)',      cls:'t-vp'},
-  {k:'vc', code:'VC',  es:'Verde (Pollo)',    en:'Green (Chicken)',   cls:'t-vc'},
+  {k:'rp', code:'RP',  es:'Rojo Puerco',      en:'Red Pork',        cls:'t-rp'},
+  {k:'rc', code:'RC',  es:'Rojo Pollo',       en:'Red Chicken',     cls:'t-rc'},
+  {k:'vp', code:'VP',  es:'Verde Puerco',     en:'Green Pork',      cls:'t-vp'},
+  {k:'vc', code:'VC',  es:'Verde Pollo',      en:'Green Chicken',   cls:'t-vc'},
   {k:'rq', code:'R/Q', es:'Rajas con Queso',  en:'Rajas & Cheese',    cls:'t-rq'},
   {k:'d',  code:'D',   es:'Dulce',            en:'Sweet',             cls:'t-d'},
 ];
@@ -420,7 +421,7 @@ function paintText(){
 function buildQtyRows(){
   $('#qtyRows').innerHTML = TYPES.map(ty => `
     <div class="qrow">
-      <div class="tag ${ty.cls}">${ty.code}</div>
+      <div class="tag ${ty.cls}"></div>
       <div class="nm"><b>${tn(ty)}</b><small id="cnt-${ty.k}"></small></div>
       <div class="stepper">
         <button class="minus" data-k="${ty.k}" data-d="-0.5" aria-label="menos">−</button>
@@ -535,7 +536,7 @@ function renderList(){
   list = sortOrders(list);
   if (!list.length){ $('#orderList').innerHTML = `<div class="empty">${q ? t('noMatch') : t('noOrders')}</div>`; return; }
   $('#orderList').innerHTML = list.map(o => {
-    const pills = TYPES.filter(ty => o.q[ty.k]).map(ty => `<span class="pill" style="background:${TILE_COLORS[ty.k]}">${ty.code} ${fmtQ(o.q[ty.k])}</span>`).join('');
+    const pills = TYPES.filter(ty => o.q[ty.k]).map(ty => `<span class="pill" style="background:${TILE_COLORS[ty.k]}">${esc(tn(ty))}: ${fmtQ(o.q[ty.k])}</span>`).join('');
     const when = [q ? dayShort(o.date) : '', o.time ? '🕑 ' + fmtTime(o.time) : '', o.phone ? '📞 ' + esc(o.phone) : ''].filter(Boolean).join(' · ');
     return `<div class="ord ${o.paid?'paid':''} ${o.picked&&o.paid?'done':''}">
       <div class="top">
@@ -580,7 +581,7 @@ function renderPrep(){
   $('#prepGrid').innerHTML = TYPES.map(ty => {
     const v = r.tot[ty.k];
     return `<div class="ptile ${v?'':'zero'}" style="background:${TILE_COLORS[ty.k]}">
-      <div class="pn">${ty.code} · ${tn(ty)}</div>
+      <div class="pn">${tn(ty)}</div>
       <div class="pv">${fmtQ(v)} <small>${t('dz')}</small></div>
       <div class="pc">${v*12} ${t('tamales')}</div></div>`;
   }).join('');
@@ -590,8 +591,8 @@ function renderPrep(){
   ].map(([a,b]) => `<div class="stat"><b>${a}</b><span>${b}</span></div>`).join('');
 
   const list = sortOrders(r.list);
-  const head = `<thead><tr><th>${t('name')}</th><th>${settings.lang==='es'?'Hora':'Time'}</th>${TYPES.map(ty => `<th>${ty.code}</th>`).join('')}<th>$</th><th>${t('notes')}</th></tr></thead>`;
-  const body = list.map(o => `<tr><td>${o.paid?'✓ ':''}${esc(o.name)}</td><td>${fmtTime(o.time)}</td>${TYPES.map(ty => `<td>${o.q[ty.k] ? fmtQ(o.q[ty.k]) : ''}</td>`).join('')}<td>${money(priceOf(o))}</td><td class="nt">${esc(o.notes||'')}</td></tr>`).join('');
+  const head = `<thead><tr><th>${t('name')}</th><th>${settings.lang==='es'?'Hora':'Time'}</th>${TYPES.map(ty => `<th class="tn">${tn(ty)}</th>`).join('')}<th>$</th><th>${t('notes')}</th></tr></thead>`;
+  const body = list.map(o => `<tr><td>${o.paid?'✓ ':''}${esc(o.name)}</td><td style="white-space:nowrap">${fmtTime(o.time)}</td>${TYPES.map(ty => `<td>${o.q[ty.k] ? fmtQ(o.q[ty.k]) : ''}</td>`).join('')}<td>${money(priceOf(o))}</td><td class="nt">${esc(o.notes||'')}</td></tr>`).join('');
   const foot = `<tfoot><tr><td>${t('total')}</td><td></td>${TYPES.map(ty => `<td>${fmtQ(r.tot[ty.k])}</td>`).join('')}<td>${money(r.money)}</td><td></td></tr></tfoot>`;
   $('#sheet').innerHTML = list.length ? head + '<tbody>' + body + '</tbody>' + foot : `<tr><td class="empty">${t('noOrders')}</td></tr>`;
 }
@@ -603,7 +604,7 @@ function exportExcel(){
     const es = settings.lang === 'es';
     const H = es ? {date:'Fecha',time:'Hora',name:'Nombre',phone:'Teléfono',doz:'Docenas',tam:'Tamales',price:'Precio/doc',total:'Total $',paid:'Pagado',picked:'Recogido',notes:'Notas',orders:'Pedidos',owed:'Falta cobrar',yes:'Sí',no:'No'}
                  : {date:'Date',time:'Time',name:'Name',phone:'Phone',doz:'Dozens',tam:'Tamales',price:'Price/dz',total:'Total $',paid:'Paid',picked:'Picked up',notes:'Notes',orders:'Orders',owed:'Still owed',yes:'Yes',no:'No'};
-    const tcol = TYPES.map(ty => ty.code + ' ' + tn(ty));
+    const tcol = TYPES.map(ty => tn(ty));
     const wb = XLSX.utils.book_new();
     const all = sortOrders(orders);
     const days = daysWithOrders();
@@ -613,27 +614,27 @@ function exportExcel(){
     days.forEach(d => { const r = dayTotals(d);
       sum.push([parseISO(d)].concat(TYPES.map(ty => r.tot[ty.k]), [r.doz, r.doz*12, r.list.length, r.money, r.owed])); });
     const ws1 = XLSX.utils.aoa_to_sheet(sum, {cellDates:true, dateNF:'ddd mmm d yyyy'});
-    ws1['!cols'] = [{wch:18}].concat(TYPES.map(()=>({wch:16})), [{wch:10},{wch:10},{wch:9},{wch:11},{wch:12}]);
+    ws1['!cols'] = [{wch:18}].concat(TYPES.map(ty=>({wch:Math.max(10,tn(ty).length+2)})), [{wch:10},{wch:10},{wch:9},{wch:11},{wch:12}]);
     XLSX.utils.book_append_sheet(wb, ws1, es ? 'Resumen por día' : 'Daily summary');
 
     // 2) All orders
-    const rows = [[H.date, H.time, H.name, H.phone].concat(TYPES.map(ty => ty.code), [H.doz, H.price, H.total, H.paid, H.picked, H.notes])];
+    const rows = [[H.date, H.time, H.name, H.phone].concat(tcol, [H.doz, H.price, H.total, H.paid, H.picked, H.notes])];
     all.forEach(o => rows.push([parseISO(o.date), fmtTime(o.time), o.name, o.phone||''].concat(TYPES.map(ty => o.q[ty.k] || ''),
       [dozOf(o), o.price!=null?o.price:settings.price, priceOf(o), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
     const ws2 = XLSX.utils.aoa_to_sheet(rows, {cellDates:true, dateNF:'yyyy-mm-dd'});
-    ws2['!cols'] = [{wch:12},{wch:9},{wch:22},{wch:14}].concat(TYPES.map(()=>({wch:6})), [{wch:9},{wch:10},{wch:9},{wch:8},{wch:10},{wch:34}]);
+    ws2['!cols'] = [{wch:12},{wch:9},{wch:22},{wch:14}].concat(TYPES.map(ty=>({wch:Math.max(10,tn(ty).length+2)})), [{wch:9},{wch:10},{wch:9},{wch:8},{wch:10},{wch:34}]);
     XLSX.utils.book_append_sheet(wb, ws2, es ? 'Todos los pedidos' : 'All orders');
 
     // 3) One sheet per day (like the paper list)
     const used = new Set();
     days.forEach(d => {
       const r = dayTotals(d); const list = sortOrders(r.list);
-      const aoa = [[dayLong(d)], [H.name, H.time].concat(TYPES.map(ty => ty.code), [H.total, H.paid, H.picked, H.notes])];
+      const aoa = [[dayLong(d)], [H.name, H.time].concat(tcol, [H.total, H.paid, H.picked, H.notes])];
       list.forEach(o => aoa.push([o.name, fmtTime(o.time)].concat(TYPES.map(ty => o.q[ty.k] || ''), [priceOf(o), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
       aoa.push(['Total', ''].concat(TYPES.map(ty => r.tot[ty.k]), [r.money]));
       aoa.push([H.tam, ''].concat(TYPES.map(ty => r.tot[ty.k]*12), ['']));
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws['!cols'] = [{wch:22},{wch:9}].concat(TYPES.map(()=>({wch:6})), [{wch:9},{wch:8},{wch:10},{wch:34}]);
+      ws['!cols'] = [{wch:22},{wch:9}].concat(TYPES.map(ty=>({wch:Math.max(10,tn(ty).length+2)})), [{wch:9},{wch:8},{wch:10},{wch:34}]);
       let nm = d; let i = 2; while (used.has(nm)) nm = d + ' (' + (i++) + ')'; used.add(nm);
       XLSX.utils.book_append_sheet(wb, ws, nm);
     });
