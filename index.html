@@ -254,9 +254,11 @@
   <!-- ================= MORE ================= -->
   <section class="view" id="view-more">
     <div class="card">
-      <h2 data-t="excelTitle"></h2>
-      <p class="muted" data-t="excelHelp"></p>
-      <button class="btn red block" id="exportBtn" data-t="excelBtn"></button>
+      <h2 data-t="pdfTitle"></h2>
+      <p class="muted" data-t="pdfHelp"></p>
+      <button class="btn red block" id="pdfAllBtn" data-t="pdfAllBtn"></button>
+      <button class="btn ghost block" id="pdfDayBtn" style="margin-top:12px"></button>
+      <button class="btn ghost block" id="exportBtn" style="margin-top:12px;min-height:48px;font-size:16px" data-t="excelBtn"></button>
     </div>
     <div class="card">
       <h2 data-t="backupTitle"></h2>
@@ -300,6 +302,8 @@
 <div class="toast" id="toast"></div>
 
 <script src="xlsx.mini.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="jspdf.plugin.autotable.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -327,9 +331,9 @@ const T = {
     paid:'Pagado',notPaid:'Sin pagar',picked:'Recogido',notPicked:'No recogido',edit:'Editar',del:'Borrar',
     delQ:'¿Borrar el pedido de {n}?',delYes:'Sí, borrar',
     prepFor:'Preparar para',totalDoz:'Docenas en total',ordersN:'Pedidos',totalMoney:'Total a cobrar',
-    stillOwed:'Falta cobrar',sheet:'Hoja del día',print:'Imprimir',total:'Total',
+    stillOwed:'Falta cobrar',sheet:'Hoja del día',print:'📄 PDF',pdfTitle:'PDF',pdfHelp:'Baja un PDF horizontal, listo para imprimir: un resumen y una página por cada día con sus pedidos.',pdfAllBtn:'📄 Bajar PDF (todos los días)',pdfDayBtn:'📄 PDF solo del {d}',total:'Total',
     excelTitle:'Excel',excelHelp:'Baja un archivo de Excel con todos los pedidos, un resumen por día y una hoja por cada día.',
-    excelBtn:'📥 Bajar Excel',
+    excelBtn:'📊 Bajar Excel (opcional)',
     backupTitle:'Respaldo',backupHelp:'Los pedidos se guardan solo en esta tableta. Guarda un respaldo de vez en cuando (y envíalo por correo o WhatsApp) por si se borra la tableta.',
     backupBtn:'💾 Guardar respaldo',restoreBtn:'📂 Restaurar',lastBackup:'Último respaldo: {d}',neverBackup:'Todavía no has guardado un respaldo.',
     restoreQ:'¿Restaurar {n} pedidos de este archivo? Los pedidos que ya están no se borran.',restoreYes:'Restaurar',
@@ -337,7 +341,7 @@ const T = {
     priceTitle:'Precio',priceLabel:'Precio por docena ($)',priceHelp:'Los pedidos ya guardados conservan su precio.',
     aboutTitle:'Información',about:'{n} pedidos guardados en esta tableta. Funciona sin internet.',
     today:'Hoy',tomorrow:'Mañana',noteChips:['No picosos','Mix','Arroz','Frijoles','Champurrado'],
-    exportErr:'No se pudo crear el Excel'},
+    exportErr:'No se pudo crear el archivo'},
   en:{tabNew:'New',tabList:'Orders',tabPrep:'Prep',tabMore:'More',
     name:'Name',date:'Date',time:'Pickup time',phone:'Phone (optional)',
     dozens:'Dozens',notes:'Notes',paidAlready:'Already paid',save:'Save',saveEdit:'Save changes',
@@ -348,9 +352,9 @@ const T = {
     paid:'Paid',notPaid:'Not paid',picked:'Picked up',notPicked:'Not picked up',edit:'Edit',del:'Delete',
     delQ:'Delete the order for {n}?',delYes:'Yes, delete',
     prepFor:'Prep for',totalDoz:'Total dozens',ordersN:'Orders',totalMoney:'Total to collect',
-    stillOwed:'Still owed',sheet:'Day sheet',print:'Print',total:'Total',
+    stillOwed:'Still owed',sheet:'Day sheet',print:'📄 PDF',pdfTitle:'PDF',pdfHelp:'Download a landscape PDF, ready to print: a summary plus one page per day with its orders.',pdfAllBtn:'📄 Download PDF (all days)',pdfDayBtn:'📄 PDF for {d} only',total:'Total',
     excelTitle:'Excel',excelHelp:'Download an Excel file with every order, a daily summary, and one sheet per day.',
-    excelBtn:'📥 Download Excel',
+    excelBtn:'📊 Download Excel (optional)',
     backupTitle:'Backup',backupHelp:'Orders are saved only on this tablet. Save a backup now and then (and email or WhatsApp it to yourself) in case the tablet gets reset.',
     backupBtn:'💾 Save backup',restoreBtn:'📂 Restore',lastBackup:'Last backup: {d}',neverBackup:'No backup saved yet.',
     restoreQ:'Restore {n} orders from this file? Existing orders are kept.',restoreYes:'Restore',
@@ -358,7 +362,7 @@ const T = {
     priceTitle:'Price',priceLabel:'Price per dozen ($)',priceHelp:'Orders already saved keep their price.',
     aboutTitle:'About',about:'{n} orders saved on this tablet. Works without internet.',
     today:'Today',tomorrow:'Tomorrow',noteChips:['Not spicy','Mix','Rice','Beans','Champurrado'],
-    exportErr:'Could not create the Excel file'}
+    exportErr:'Could not create the file'}
 };
 
 /* ================= STATE ================= */
@@ -596,7 +600,7 @@ function renderPrep(){
   const foot = `<tfoot><tr><td>${t('total')}</td><td></td>${TYPES.map(ty => `<td>${fmtQ(r.tot[ty.k])}</td>`).join('')}<td>${money(r.money)}</td><td></td></tr></tfoot>`;
   $('#sheet').innerHTML = list.length ? head + '<tbody>' + body + '</tbody>' + foot : `<tr><td class="empty">${t('noOrders')}</td></tr>`;
 }
-$('#printBtn').addEventListener('click', () => window.print());
+$('#printBtn').addEventListener('click', () => exportPDF([day]));
 
 /* ================= MORE: Excel, backup, price ================= */
 function exportExcel(){
@@ -643,6 +647,70 @@ function exportExcel(){
 }
 $('#exportBtn').addEventListener('click', exportExcel);
 
+/* ================= PDF (landscape, narrow margins, all columns on one page width) ================= */
+function exportPDF(onlyDays){
+  try{
+    const es = settings.lang === 'es';
+    const H = es ? {date:'Fecha',time:'Hora',name:'Nombre',phone:'Teléfono',doz:'Docenas',tam:'Tamales',total:'Total $',paid:'Pagado',picked:'Recogido',notes:'Notas',orders:'Pedidos',owed:'Falta cobrar',yes:'Sí',no:'No',summary:'Resumen por día',all:'Todos',page:'Página',made:'Creado'}
+                 : {date:'Date',time:'Time',name:'Name',phone:'Phone',doz:'Dozens',tam:'Tamales',total:'Total $',paid:'Paid',picked:'Picked up',notes:'Notes',orders:'Orders',owed:'Still owed',yes:'Yes',no:'No',summary:'Daily summary',all:'All',page:'Page',made:'Created'};
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'letter'});
+    const M = 36; // narrow margins: 0.5 inch
+    const W = doc.internal.pageSize.getWidth();
+    const RED = [179,38,30];
+    const days = (onlyDays || daysWithOrders()).slice().sort();
+    const names = TYPES.map(ty => tn(ty));
+    const base = {margin:{top:M+30,left:M,right:M,bottom:M+14}, tableWidth:'auto', theme:'grid',
+      styles:{fontSize:10,cellPadding:4,overflow:'linebreak',valign:'middle',halign:'center',lineColor:[200,190,180],lineWidth:0.5,textColor:[30,30,30]},
+      headStyles:{fillColor:RED,textColor:255,fontStyle:'bold',halign:'center'},
+      footStyles:{fillColor:[240,232,220],textColor:[30,30,30],fontStyle:'bold',halign:'center'}};
+    const title = (txt) => { doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(...RED); doc.text("Andrea's Tamales", M, M+4);
+      doc.setTextColor(30); doc.setFontSize(13); doc.text(txt, M, M+22); };
+    const capital = s => s.charAt(0).toUpperCase() + s.slice(1);
+    let first = true;
+
+    if (days.length > 1){
+      title(H.summary);
+      const body = days.map(d => { const r = dayTotals(d);
+        return [capital(dayLong(d))].concat(TYPES.map(ty => r.tot[ty.k] ? fmtQ(r.tot[ty.k]) : ''), [fmtQ(r.doz), r.doz*12, r.list.length, money(r.money), money(r.owed)]); });
+      doc.autoTable(Object.assign({}, base, {
+        head:[[H.date].concat(names, [H.doz, H.tam, H.orders, H.total, H.owed])], body,
+        columnStyles:{0:{halign:'left',cellWidth:150}}}));
+      first = false;
+    }
+
+    days.forEach(d => {
+      const r = dayTotals(d); const list = sortOrders(r.list);
+      if (!first) doc.addPage(); first = false;
+      title(capital(dayLong(d)) + '   ·   ' + r.list.length + ' ' + H.orders.toLowerCase() + '   ·   ' + fmtQ(r.doz) + ' ' + H.doz.toLowerCase() + ' (' + r.doz*12 + ' ' + H.tam.toLowerCase() + ')');
+      // Totals to make
+      doc.autoTable(Object.assign({}, base, {
+        head:[names.concat([H.doz, H.total, H.owed])],
+        body:[TYPES.map(ty => fmtQ(r.tot[ty.k]) + ' (' + r.tot[ty.k]*12 + ')').concat([fmtQ(r.doz), money(r.money), money(r.owed)])],
+        styles:Object.assign({}, base.styles, {fontSize:11, fontStyle:'bold'})}));
+      // Orders
+      doc.autoTable(Object.assign({}, base, {
+        startY: doc.lastAutoTable.finalY + 14,
+        head:[[H.name, H.time, H.phone].concat(names, [H.doz, H.total, H.paid, H.picked, H.notes])],
+        body: list.map(o => [o.name, fmtTime(o.time), o.phone||''].concat(TYPES.map(ty => o.q[ty.k] ? fmtQ(o.q[ty.k]) : ''),
+          [fmtQ(dozOf(o)), money(priceOf(o)), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])),
+        foot:[['Total','',''].concat(TYPES.map(ty => fmtQ(r.tot[ty.k])), [fmtQ(r.doz), money(r.money), '', '', ''])],
+        showFoot:'lastPage', rowPageBreak:'avoid',
+        columnStyles:{0:{halign:'left',fontStyle:'bold',cellWidth:95},1:{cellWidth:44},2:{cellWidth:84},13:{halign:'left',cellWidth:'auto',fontSize:9}},
+        didParseCell: c => { if (c.section==='body' && (c.column.index===11 || c.column.index===12)) c.cell.styles.textColor = c.cell.raw===H.yes ? [46,125,50] : [179,38,30]; }
+      }));
+    });
+
+    // page numbers + date created
+    const n = doc.getNumberOfPages(); const made = H.made + ': ' + new Date().toLocaleString(locale(), {dateStyle:'medium', timeStyle:'short'});
+    for (let i = 1; i <= n; i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120);
+      doc.text(made, M, doc.internal.pageSize.getHeight() - M/2); doc.text(H.page + ' ' + i + ' / ' + n, W - M, doc.internal.pageSize.getHeight() - M/2, {align:'right'}); }
+    doc.save('Tamales-' + (onlyDays && onlyDays.length === 1 ? onlyDays[0] : todayISO()) + '.pdf');
+  } catch(err){ console.error(err); toast(t('exportErr'), true); }
+}
+$('#pdfAllBtn').addEventListener('click', () => { if (!orders.length){ toast(t('noOrders'), true); return; } exportPDF(); });
+$('#pdfDayBtn').addEventListener('click', () => exportPDF([day]));
+
 function download(name, text, type){
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type}));
   a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -668,6 +736,7 @@ $('#restoreFile').addEventListener('change', e => {
 $('#price').addEventListener('change', e => { const v = Number(e.target.value); if (v >= 0){ settings.price = v; saveSettings(); paintQty(); } });
 function renderMore(){
   $('#price').value = settings.price;
+  $('#pdfDayBtn').textContent = t('pdfDayBtn', {d: dayLong(day)});
   $('#lastBackup').textContent = settings.lastBackup ? t('lastBackup', {d: new Date(settings.lastBackup).toLocaleString(locale(), {dateStyle:'medium', timeStyle:'short'})}) : t('neverBackup');
   $('#aboutText').textContent = t('about', {n: orders.length});
 }
