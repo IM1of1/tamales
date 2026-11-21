@@ -63,7 +63,7 @@
   .stepper .minus{background:#efe7dc;color:#5a4a3a}
   .stepper .plus{background:var(--red);color:#fff}
   .stepper .plus1{background:#f3d6d3;color:var(--red-dark);font-size:18px;width:58px}
-  .stepper .val{min-width:66px;text-align:center;font-size:28px;font-weight:800}
+  .stepper .val{min-width:104px;text-align:center;font-size:26px;font-weight:800;white-space:nowrap}
   .stepper .val.zero{color:#c8bfb3}
   @media (max-width:560px){.stepper .plus1{display:none}.stepper button{width:56px}}
 
@@ -398,9 +398,15 @@ function fmtTime(hm){
   const [h,m] = hm.split(':').map(Number); const ap = h<12?'am':'pm'; const h12 = ((h+11)%12)+1;
   return h12 + (m ? ':'+String(m).padStart(2,'0') : '') + ' ' + ap;
 }
+const tam = q => Math.round((q||0)*12);          // dozens -> number of tamales
+const r2 = q => Math.round((q||0)*100)/100;        // dozens rounded for Excel
+function fmtHalf(q){ const w = Math.floor(q), h = q - w >= 0.5; return (w ? String(w) : '') + (h ? '½' : '') || '0'; }
+// Whole/half dozens show as "1½"; extra single tamales show as "1½ +5" (or "5 tam." under ½ dozen)
 function fmtQ(q){
-  if (!q) return '0'; const w = Math.floor(q), h = q - w >= 0.5;
-  return (w ? String(w) : '') + (h ? '½' : '') || '0';
+  const n = tam(q); if (!n) return '0';
+  const halves = Math.floor(n/6), rem = n - halves*6;
+  if (!rem) return fmtHalf(halves/2);
+  return halves ? fmtHalf(halves/2) + '\u00a0+' + rem : rem + '\u00a0tam.';
 }
 const money = n => '$' + (Math.round(n*100)/100).toFixed(2);
 const dozOf = o => TYPES.reduce((s,ty) => s + (o.q[ty.k]||0), 0);
@@ -428,7 +434,7 @@ function buildQtyRows(){
       <div class="tag ${ty.cls}"></div>
       <div class="nm"><b>${tn(ty)}</b><small id="cnt-${ty.k}"></small></div>
       <div class="stepper">
-        <button class="minus" data-k="${ty.k}" data-d="-0.5" aria-label="menos">−</button>
+        <button class="minus" data-k="${ty.k}" data-d="-0.0833333333" aria-label="menos 1 tamal">−</button>
         <div class="val" id="val-${ty.k}">0</div>
         <button class="plus" data-k="${ty.k}" data-d="0.5" aria-label="más ½">+</button>
         <button class="plus1" data-k="${ty.k}" data-d="1">+1</button>
@@ -437,7 +443,7 @@ function buildQtyRows(){
 }
 $('#qtyRows').addEventListener('click', e => {
   const b = e.target.closest('button[data-k]'); if (!b) return;
-  const k = b.dataset.k; form.q[k] = Math.max(0, Math.round((form.q[k] + Number(b.dataset.d))*2)/2);
+  const k = b.dataset.k; form.q[k] = Math.max(0, Math.round((form.q[k] + Number(b.dataset.d))*12)/12);
   paintQty();
 });
 function buildChips(){
@@ -470,11 +476,11 @@ function paintQty(){
   TYPES.forEach(ty => {
     const v = form.q[ty.k]; const el = $('#val-'+ty.k); if (!el) return;
     el.textContent = fmtQ(v); el.classList.toggle('zero', !v);
-    $('#cnt-'+ty.k).textContent = v ? (v*12) + ' ' + t('tamales') : '';
+    $('#cnt-'+ty.k).textContent = v ? tam(v) + ' ' + t('tamales') : '';
   });
   const dz = dozOf(form); const pr = editingId ? (orders.find(o=>o.id===editingId)||{}).price : settings.price;
   $('#tMoney').textContent = money(dz * (pr!=null?pr:settings.price));
-  $('#tDoz').textContent = fmtQ(dz) + ' ' + t('dz') + ' · ' + (dz*12) + ' ' + t('tamales');
+  $('#tDoz').textContent = fmtQ(dz) + ' ' + t('dz') + ' · ' + tam(dz) + ' ' + t('tamales');
   $('#saveBtn').textContent = editingId ? t('saveEdit') : t('save');
 }
 
@@ -587,10 +593,10 @@ function renderPrep(){
     return `<div class="ptile ${v?'':'zero'}" style="background:${TILE_COLORS[ty.k]}">
       <div class="pn">${tn(ty)}</div>
       <div class="pv">${fmtQ(v)} <small>${t('dz')}</small></div>
-      <div class="pc">${v*12} ${t('tamales')}</div></div>`;
+      <div class="pc">${tam(v)} ${t('tamales')}</div></div>`;
   }).join('');
   $('#prepStats').innerHTML = [
-    [fmtQ(r.doz), t('totalDoz') + ' (' + r.doz*12 + ')'], [r.list.length, t('ordersN')],
+    [fmtQ(r.doz), t('totalDoz') + ' (' + tam(r.doz) + ')'], [r.list.length, t('ordersN')],
     [money(r.money), t('totalMoney')], [money(r.owed), t('stillOwed')]
   ].map(([a,b]) => `<div class="stat"><b>${a}</b><span>${b}</span></div>`).join('');
 
@@ -616,15 +622,15 @@ function exportExcel(){
     // 1) Daily summary
     const sum = [[H.date].concat(tcol, [H.doz, H.tam, H.orders, H.total, H.owed])];
     days.forEach(d => { const r = dayTotals(d);
-      sum.push([parseISO(d)].concat(TYPES.map(ty => r.tot[ty.k]), [r.doz, r.doz*12, r.list.length, r.money, r.owed])); });
+      sum.push([parseISO(d)].concat(TYPES.map(ty => r2(r.tot[ty.k])), [r2(r.doz), tam(r.doz), r.list.length, r2(r.money), r2(r.owed)])); });
     const ws1 = XLSX.utils.aoa_to_sheet(sum, {cellDates:true, dateNF:'ddd mmm d yyyy'});
     ws1['!cols'] = [{wch:18}].concat(TYPES.map(ty=>({wch:Math.max(10,tn(ty).length+2)})), [{wch:10},{wch:10},{wch:9},{wch:11},{wch:12}]);
     XLSX.utils.book_append_sheet(wb, ws1, es ? 'Resumen por día' : 'Daily summary');
 
     // 2) All orders
     const rows = [[H.date, H.time, H.name, H.phone].concat(tcol, [H.doz, H.price, H.total, H.paid, H.picked, H.notes])];
-    all.forEach(o => rows.push([parseISO(o.date), fmtTime(o.time), o.name, o.phone||''].concat(TYPES.map(ty => o.q[ty.k] || ''),
-      [dozOf(o), o.price!=null?o.price:settings.price, priceOf(o), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
+    all.forEach(o => rows.push([parseISO(o.date), fmtTime(o.time), o.name, o.phone||''].concat(TYPES.map(ty => r2(o.q[ty.k]) || ''),
+      [r2(dozOf(o)), o.price!=null?o.price:settings.price, r2(priceOf(o)), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
     const ws2 = XLSX.utils.aoa_to_sheet(rows, {cellDates:true, dateNF:'yyyy-mm-dd'});
     ws2['!cols'] = [{wch:12},{wch:9},{wch:22},{wch:14}].concat(TYPES.map(ty=>({wch:Math.max(10,tn(ty).length+2)})), [{wch:9},{wch:10},{wch:9},{wch:8},{wch:10},{wch:34}]);
     XLSX.utils.book_append_sheet(wb, ws2, es ? 'Todos los pedidos' : 'All orders');
@@ -634,9 +640,9 @@ function exportExcel(){
     days.forEach(d => {
       const r = dayTotals(d); const list = sortOrders(r.list);
       const aoa = [[dayLong(d)], [H.name, H.time].concat(tcol, [H.total, H.paid, H.picked, H.notes])];
-      list.forEach(o => aoa.push([o.name, fmtTime(o.time)].concat(TYPES.map(ty => o.q[ty.k] || ''), [priceOf(o), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
-      aoa.push(['Total', ''].concat(TYPES.map(ty => r.tot[ty.k]), [r.money]));
-      aoa.push([H.tam, ''].concat(TYPES.map(ty => r.tot[ty.k]*12), ['']));
+      list.forEach(o => aoa.push([o.name, fmtTime(o.time)].concat(TYPES.map(ty => r2(o.q[ty.k]) || ''), [r2(priceOf(o)), o.paid?H.yes:H.no, o.picked?H.yes:H.no, o.notes||''])));
+      aoa.push(['Total', ''].concat(TYPES.map(ty => r2(r.tot[ty.k])), [r2(r.money)]));
+      aoa.push([H.tam, ''].concat(TYPES.map(ty => tam(r.tot[ty.k])), ['']));
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws['!cols'] = [{wch:22},{wch:9}].concat(TYPES.map(ty=>({wch:Math.max(10,tn(ty).length+2)})), [{wch:9},{wch:8},{wch:10},{wch:34}]);
       let nm = d; let i = 2; while (used.has(nm)) nm = d + ' (' + (i++) + ')'; used.add(nm);
@@ -672,7 +678,7 @@ function exportPDF(onlyDays){
     if (days.length > 1){
       title(H.summary);
       const body = days.map(d => { const r = dayTotals(d);
-        return [capital(dayLong(d))].concat(TYPES.map(ty => r.tot[ty.k] ? fmtQ(r.tot[ty.k]) : ''), [fmtQ(r.doz), r.doz*12, r.list.length, money(r.money), money(r.owed)]); });
+        return [capital(dayLong(d))].concat(TYPES.map(ty => r.tot[ty.k] ? fmtQ(r.tot[ty.k]) : ''), [fmtQ(r.doz), tam(r.doz), r.list.length, money(r.money), money(r.owed)]); });
       doc.autoTable(Object.assign({}, base, {
         head:[[H.date].concat(names, [H.doz, H.tam, H.orders, H.total, H.owed])], body,
         columnStyles:{0:{halign:'left',cellWidth:150}}}));
@@ -682,11 +688,11 @@ function exportPDF(onlyDays){
     days.forEach(d => {
       const r = dayTotals(d); const list = sortOrders(r.list);
       if (!first) doc.addPage(); first = false;
-      title(capital(dayLong(d)) + '   ·   ' + r.list.length + ' ' + H.orders.toLowerCase() + '   ·   ' + fmtQ(r.doz) + ' ' + H.doz.toLowerCase() + ' (' + r.doz*12 + ' ' + H.tam.toLowerCase() + ')');
+      title(capital(dayLong(d)) + '   ·   ' + r.list.length + ' ' + H.orders.toLowerCase() + '   ·   ' + fmtQ(r.doz) + ' ' + H.doz.toLowerCase() + ' (' + tam(r.doz) + ' ' + H.tam.toLowerCase() + ')');
       // Totals to make
       doc.autoTable(Object.assign({}, base, {
         head:[names.concat([H.doz, H.total, H.owed])],
-        body:[TYPES.map(ty => fmtQ(r.tot[ty.k]) + ' (' + r.tot[ty.k]*12 + ')').concat([fmtQ(r.doz), money(r.money), money(r.owed)])],
+        body:[TYPES.map(ty => fmtQ(r.tot[ty.k]) + ' (' + tam(r.tot[ty.k]) + ')').concat([fmtQ(r.doz), money(r.money), money(r.owed)])],
         styles:Object.assign({}, base.styles, {fontSize:11, fontStyle:'bold'})}));
       // Orders
       doc.autoTable(Object.assign({}, base, {
