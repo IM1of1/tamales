@@ -281,6 +281,7 @@
     <div class="card">
       <h2 data-t="aboutTitle"></h2>
       <p class="muted" id="aboutText"></p>
+      <button class="btn ghost block" id="updateBtn" data-t="updateBtn"></button>
     </div>
   </section>
 </main>
@@ -318,6 +319,7 @@ const TYPES = [
   {k:'d',  code:'D',   es:'Dulce',            en:'Sweet',             cls:'t-d'},
 ];
 const TILE_COLORS = {rp:'#c62828',rc:'#e0533f',vp:'#2e7d32',vc:'#5a9e3a',rq:'#b7860b',d:'#ad1457'};
+const APP_VERSION = 6; // bump together with VERSION in sw.js
 const KEY_ORDERS='tamales.orders.v1', KEY_SET='tamales.settings.v1';
 
 const T = {
@@ -339,7 +341,7 @@ const T = {
     restoreQ:'¿Restaurar {n} pedidos de este archivo? Los pedidos que ya están no se borran.',restoreYes:'Restaurar',
     restored:'Restaurados: {n}',badFile:'Ese archivo no es un respaldo válido',
     priceTitle:'Precio',priceLabel:'Precio por docena ($)',priceHelp:'Los pedidos ya guardados conservan su precio.',
-    aboutTitle:'Información',about:'{n} pedidos guardados en esta tableta. Funciona sin internet.',
+    aboutTitle:'Información',about:'Versión {v}. {n} pedidos guardados en esta tableta. Funciona sin internet.',updateBtn:'🔄 Buscar actualización',updating:'Buscando actualización…',
     today:'Hoy',tomorrow:'Mañana',noteChips:['No picosos'],
     exportErr:'No se pudo crear el archivo'},
   en:{tabNew:'New',tabList:'Orders',tabPrep:'Prep',tabMore:'More',
@@ -360,7 +362,7 @@ const T = {
     restoreQ:'Restore {n} orders from this file? Existing orders are kept.',restoreYes:'Restore',
     restored:'Restored: {n}',badFile:'That file is not a valid backup',
     priceTitle:'Price',priceLabel:'Price per dozen ($)',priceHelp:'Orders already saved keep their price.',
-    aboutTitle:'About',about:'{n} orders saved on this tablet. Works without internet.',
+    aboutTitle:'About',about:'Version {v}. {n} orders saved on this tablet. Works without internet.',updateBtn:'🔄 Check for update',updating:'Checking for update…',
     today:'Today',tomorrow:'Tomorrow',noteChips:['Not spicy'],
     exportErr:'Could not create the file'}
 };
@@ -744,7 +746,7 @@ function renderMore(){
   $('#price').value = settings.price;
   $('#pdfDayBtn').textContent = t('pdfDayBtn', {d: dayLong(day)});
   $('#lastBackup').textContent = settings.lastBackup ? t('lastBackup', {d: new Date(settings.lastBackup).toLocaleString(locale(), {dateStyle:'medium', timeStyle:'short'})}) : t('neverBackup');
-  $('#aboutText').textContent = t('about', {n: orders.length});
+  $('#aboutText').textContent = t('about', {n: orders.length, v: APP_VERSION});
 }
 
 /* ================= NAV, MODAL, TOAST ================= */
@@ -771,7 +773,25 @@ function renderAll(){ renderDaybars(); renderList(); renderPrep(); renderMore();
 
 /* ================= START ================= */
 paintText();
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* ---- Updates: the installed app picks up new versions on its own ---- */
+let swReg = null, reloadPending = false;
+const formIsEmpty = () => !editingId && !form.name.trim() && !dozOf(form) && !form.notes.trim();
+function reloadWhenSafe(){ if (formIsEmpty()) location.reload(); else reloadPending = true; }
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).then(r => { swReg = r; r.update().catch(()=>{}); }).catch(()=>{});
+  // A new version finished installing: reload into it (but never while an order is half typed)
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController) reloadWhenSafe(); });
+  // Each time the app is brought back to the screen, look for a new version
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && swReg) swReg.update().catch(()=>{}); });
+}
+// After saving or cancelling, do a pending update reload
+$('#saveBtn').addEventListener('click', () => { if (reloadPending) setTimeout(() => { if (formIsEmpty()) location.reload(); }, 1200); });
+$('#updateBtn').addEventListener('click', () => {
+  toast(t('updating'));
+  const done = () => setTimeout(() => location.reload(), 800);
+  if (swReg) swReg.update().then(done, done); else done();
+});
 // Re-read if another tab changed data
 window.addEventListener('storage', e => { if (e.key === KEY_ORDERS){ orders = load(KEY_ORDERS, []); renderAll(); } });
 })();
